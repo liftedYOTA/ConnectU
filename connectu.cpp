@@ -42,7 +42,7 @@ struct Post {
     }
 };
 
-// TODO: LAB 1 - Linked List
+// COMPLETED: LAB 1 - Linked List
 class Timeline {
 public:
     Post* head;
@@ -50,7 +50,7 @@ public:
 
     // Task: Add a new post to the FRONT of the list (O(1))
     void addPost(int pid, int uid, string content, int likes, long time) {
-        // TODO: LAB 1
+        // COMPLETED: LAB 1
         // create new Post node dynamically
         Post* newPost = new Post(pid, uid, content, likes, time);
 
@@ -72,7 +72,7 @@ public:
         }
         
         // Task: Traverse the linked list and print content
-        // TODO: LAB 1
+        // COMPLETED: LAB 1
         // traverse until nullptr
         while (current != nullptr) {
             cout << "Post ID: " << current->postId << endl;
@@ -178,12 +178,25 @@ struct HashNode {
 
 class UserMap {
 private:
-    static const int TABLE_SIZE = 10007; 
+    static const int TABLE_SIZE = 10007;
     HashNode** table;
 
+    // Removes leading/trailing whitespace and Windows '\r'
+    string normalizeKey(string key) {
+        size_t start = key.find_first_not_of(" \t\r\n");
+        if (start == string::npos) return "";
+        size_t end = key.find_last_not_of(" \t\r\n");
+        return key.substr(start, end - start + 1);
+    }
+
     unsigned long hashFunction(string key) {
-        // TODO: LAB 2
-        return 0; 
+        // Polynomial rolling hash
+        const unsigned long BASE = 31;
+        unsigned long hash = 0;
+        for (char c : key) {
+            hash = (hash * BASE + (unsigned long)(unsigned char)c) % TABLE_SIZE;
+        }
+        return hash; // 0 ... TABLE_SIZE-1
     }
 
 public:
@@ -192,19 +205,41 @@ public:
         for (int i = 0; i < TABLE_SIZE; i++) table[i] = nullptr;
     }
 
-    void put(string key, User* user) { /* TODO: LAB 2 */ }
+    void put(string key, User* user) {
+        key = normalizeKey(key);
+        unsigned long idx = hashFunction(key);
+
+        // If key already exists, update value
+        HashNode* cur = table[idx];
+        while (cur != nullptr) {
+            if (cur->key == key) {
+                cur->value = user;
+                return;
+            }
+            cur = cur->next;
+        }
+
+        // Insert new node at head (chaining)
+        HashNode* node = new HashNode(key, user);
+        node->next = table[idx];
+        table[idx] = node;
+    }
 
     User* get(string key) {
-        // --- TEMPORARY FALLBACK FOR LAB 1 ---
-        for(User* u : allUsers) {
-            if (u->username == key) return u;
+        key = normalizeKey(key);
+        unsigned long idx = hashFunction(key);
+
+        HashNode* cur = table[idx];
+        while (cur != nullptr) {
+            if (cur->key == key) return cur->value;
+            cur = cur->next;
         }
-        // TODO: LAB 2 - REPLACE ABOVE WITH HASH LOOKUP
         return nullptr;
     }
 };
 
 UserMap userMap;
+
 
 // ==========================================
 // UTILITY FUNCTIONS
