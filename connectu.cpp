@@ -8,7 +8,10 @@
  * if your Lab 1 implementation is incomplete.
  * * ONLY uncomment saveData() after you have verified Lab 1 works!
  */
-////ethan kirkham
+
+//Lab 0 Edit
+
+
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -38,11 +41,14 @@ struct Post {
         
     // TODO: LAB 3 - Implement Scoring Logic
     double getScore() {
-        return 0.0; 
+    long currentTime = time(0);
+    long age = currentTime - timestamp;
+    double hoursOld = age / 3600.0;
+    return (likes * 10) + (1000.0 / (hoursOld + 1));
     }
 };
 
-// COMPLETED: LAB 1 - Linked List
+// TODO: LAB 1 - Linked List
 class Timeline {
 public:
     Post* head;
@@ -50,40 +56,22 @@ public:
 
     // Task: Add a new post to the FRONT of the list (O(1))
     void addPost(int pid, int uid, string content, int likes, long time) {
-        // COMPLETED: LAB 1
-        // create new Post node dynamically
-        Post* newPost = new Post(pid, uid, content, likes, time);
-
-        // point new node to current head
-        newPost->next = head;
-
-        // move head to new node
-        head = newPost;
-
-
+        // TODO: LAB 1
+        Post* newPost = new Post(pid, uid, content, likes, time); // Create new post node
+        
+        newPost->next = head; // Make the new post point to the current first post
+        head = newPost;       // Update head to point to the new post
     }
 
     void printTimeline() {
         Post* current = head;
-        // if list empty
-        if (!current) { 
-            cout << "  (No posts yet)" << endl;
-            return; 
-        }
+        if (!current) { cout << "  (No posts yet)" << endl; return; }
         
         // Task: Traverse the linked list and print content
-        // COMPLETED: LAB 1
-        // traverse until nullptr
+        // TODO: LAB 1
         while (current != nullptr) {
-            cout << "Post ID: " << current->postId << endl;
-            cout << "User ID: " << current->userId << endl;
-            cout << "Content: " << current->content << endl;
-            cout << "Likes: " << current->likes << endl;
-            cout << "Timestamp: " << current->timestamp << endl;
-            cout << "----------------------" << endl;
-
-            current = current->next;  // move forward
-
+            cout << "  > [ID: " << current->postId << "] "<< current->content << " (" << current->likes << " likes)" <<endl;  // Print post ID, content, and likes
+            current = current-> next;   // Move to the next post
         }
     }
 };
@@ -153,19 +141,74 @@ void FriendBST::printInOrder(BSTNode* node) {
 // TODO: LAB 3 - Max Heap
 class FeedHeap {
 private:
-    Post* heap[1000]; 
+    Post* heap[1000];
     int size;
 
-    void heapifyDown(int index) { /* TODO: LAB 3 */ }
-    void heapifyUp(int index) { /* TODO: LAB 3 */ }
+    void heapifyDown(int index) {
+        while (true) {
+            int left = 2 * index + 1;
+            int right = 2 * index + 2;
+            int largest = index;
+
+            if (left < size && heap[left]->getScore() > heap[largest]->getScore()) {
+                largest = left;
+            }
+            if (right < size && heap[right]->getScore() > heap[largest]->getScore()) {
+                largest = right;
+            }
+
+            if (largest == index) {
+                break;
+            }
+
+            Post* temp = heap[index];
+            heap[index] = heap[largest];
+            heap[largest] = temp;
+            index = largest;
+        }
+    }
+
+    void heapifyUp(int index) {
+        while (index > 0) {
+            int parent = (index - 1) / 2;
+
+            if (heap[index]->getScore() > heap[parent]->getScore()) {
+                Post* temp = heap[index];
+                heap[index] = heap[parent];
+                heap[parent] = temp;
+                index = parent;
+            } else {
+                break;
+            }
+        }
+    }
 
 public:
     FeedHeap() : size(0) {}
-    void push(Post* p) { /* TODO: LAB 3 */ }
-    Post* popMax() { return nullptr; /* TODO: LAB 3 */ }
+
+    void push(Post* p) {
+        if (size >= 1000) return;
+        heap[size] = p;
+        size++;
+        heapifyUp(size - 1);
+    }
+
+    Post* popMax() {
+        if (size == 0) return nullptr;
+
+        Post* maxPost = heap[0];
+        heap[0] = heap[size - 1];
+        size--;
+
+        if (size > 0) {
+            heapifyDown(0);
+        }
+
+        return maxPost;
+    }
+
     bool isEmpty() { return size == 0; }
 };
-
 vector<User*> allUsers;
 
 // TODO: LAB 2 - Hash Map
@@ -178,25 +221,19 @@ struct HashNode {
 
 class UserMap {
 private:
-    static const int TABLE_SIZE = 10007;
+    static const int TABLE_SIZE = 10007; 
     HashNode** table;
 
-    // Removes leading/trailing whitespace and Windows '\r'
-    string normalizeKey(string key) {
-        size_t start = key.find_first_not_of(" \t\r\n");
-        if (start == string::npos) return "";
-        size_t end = key.find_last_not_of(" \t\r\n");
-        return key.substr(start, end - start + 1);
-    }
-
     unsigned long hashFunction(string key) {
-        // Polynomial rolling hash
-        const unsigned long BASE = 31;
-        unsigned long hash = 0;
-        for (char c : key) {
-            hash = (hash * BASE + (unsigned long)(unsigned char)c) % TABLE_SIZE;
+        // TODO: LAB 2
+        unsigned long hash = 0;     // Start with 0
+        const int base = 31;       // Prime multiplier
+
+        for (char c : key ){        // Process each character in username
+            hash = (hash * base + c) % TABLE_SIZE;    // Multiply previous hash value by base, and add ASCII value of current character
         }
-        return hash; // 0 ... TABLE_SIZE-1
+
+        return hash; // Map to valid index
     }
 
 public:
@@ -205,41 +242,36 @@ public:
         for (int i = 0; i < TABLE_SIZE; i++) table[i] = nullptr;
     }
 
-    void put(string key, User* user) {
-        key = normalizeKey(key);
-        unsigned long idx = hashFunction(key);
+    void put(string key, User* user) { 
+        /* TODO: LAB 2 */ 
+        unsigned long index = hashFunction(key);    // Get bucket index
+        HashNode* newNode = new HashNode(key, user);    // Create new node
 
-        // If key already exists, update value
-        HashNode* cur = table[idx];
-        while (cur != nullptr) {
-            if (cur->key == key) {
-                cur->value = user;
-                return;
-            }
-            cur = cur->next;
-        }
-
-        // Insert new node at head (chaining)
-        HashNode* node = new HashNode(key, user);
-        node->next = table[idx];
-        table[idx] = node;
+        newNode->next = table[index];   // Link to existing chain
+        table[index] = newNode;    // Update bucket head
     }
 
     User* get(string key) {
-        key = normalizeKey(key);
-        unsigned long idx = hashFunction(key);
+        // --- TEMPORARY FALLBACK FOR LAB 1 ---
+        /* for(User* u : allUsers) {
+            if (u->username == key) return u;
+        } */
+        
+        // TODO: LAB 2 - REPLACE ABOVE WITH HASH LOOKUP
+        unsigned long index = hashFunction(key);    // Get bucket index
+        HashNode* current = table[index];   // Start at chain head
 
-        HashNode* cur = table[idx];
-        while (cur != nullptr) {
-            if (cur->key == key) return cur->value;
-            cur = cur->next;
+        while (current != nullptr) {    // Walk the chain to find matching key
+            if (current->key == key) {      // Check for matching username
+                return current->value;  // Return User pointer
+            }
+            current = current->next;    // Move to next node
         }
-        return nullptr;
+        return nullptr; // User not found
     }
 };
 
 UserMap userMap;
-
 
 // ==========================================
 // UTILITY FUNCTIONS
@@ -519,14 +551,14 @@ void showMainMenu() {
         else if (choice == 3) {
             // SAFETY: Commented out to prevent data loss on initial run.
             // Students must uncomment this ONLY when Lab 1 is complete.
-            saveData(); 
+            saveData();
             cout << "Goodbye! " << endl;
         }
     }
 }
 
 int main() {
-    loadData(); 
+    loadData();
     clearScreen();
     showMainMenu();
     return 0;
