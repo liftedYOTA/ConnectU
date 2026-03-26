@@ -131,11 +131,34 @@ public:
 
 // BST Implementation
 BSTNode* FriendBST::insert(BSTNode* node, User* u) {
-    // TODO: LAB 4
+    // if empty spot, create new node
+    if (node == nullptr) {
+        return new BSTNode(u);
+    }
+
+    // smaller username goes to the left
+    if (u->username < node->user->username) {
+        node->left = insert(node->left, u);
+    }
+    // bigger username goes to the right
+    else if (u->username > node->user->username) {
+        node->right = insert(node->right, u);
+    }
+
+    // return unchanged root
     return node;
 }
+
 void FriendBST::printInOrder(BSTNode* node) {
-    // TODO: LAB 4
+    // base case
+    if (node == nullptr) {
+        return;
+    }
+
+    // Left -> Root -> Right
+    printInOrder(node->left);
+    cout << "  - " << node->user->username << endl;
+    printInOrder(node->right);
 }
 
 // TODO: LAB 3 - Max Heap
