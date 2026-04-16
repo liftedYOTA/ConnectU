@@ -362,7 +362,44 @@ void addFriendship(User* requester, User* target) {
 // TODO: LAB 5 - Breadth First Search
 void recommendFriends(User* startUser) {
     cout << "\n[GRAPH ANALYSIS] Finding friends of friends..." << endl;
-    // TODO: LAB 5
+
+    queue<User*> q;
+    set<int> visited;
+    bool foundRecommendation = false;
+
+    // mark yourself as visited first
+    visited.insert(startUser->userId);
+
+    // add all direct friends to the queue
+    for (User* directFriend : startUser->friends) {
+        q.push(directFriend);
+        visited.insert(directFriend->userId); // so we don't recommend current friends
+    }
+
+    // BFS through direct friends to find level 2 connections
+    while (!q.empty()) {
+        User* current = q.front();
+        q.pop();
+
+        // check this friend's friends
+        for (User* fof : current->friends) {
+            // recommend only if:
+            // 1. not yourself
+            // 2. not already your friend
+            // 3. not already printed before
+            if (fof->userId != startUser->userId &&
+                visited.find(fof->userId) == visited.end()) {
+
+                cout << "  - @" << fof->username << endl;
+                foundRecommendation = true;
+                visited.insert(fof->userId); // avoid duplicate recommendations
+            }
+        }
+    }
+
+    if (!foundRecommendation) {
+        cout << "  No friend recommendations found." << endl;
+    }
 }
 
 // ==========================================
