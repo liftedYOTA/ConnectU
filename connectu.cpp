@@ -21,6 +21,7 @@
 #include <set>
 #include <queue>
 #include <algorithm>
+#include <cmath>
 
 using namespace std;
 
@@ -401,7 +402,97 @@ void recommendFriends(User* startUser) {
         cout << "  No friend recommendations found." << endl;
     }
 }
+// ==========================================
+// LAB 6 - POST RECOMMENDATION SYSTEM
+// Data Structure: Vector
+// Algorithm: Similarity score + sorting
+// ==========================================
 
+struct RecommendedPost {
+    Post* post;
+    User* author;
+    int similarityScore;
+};
+
+// This function compares two users' interest scores.
+// A lower score means the users are more similar.
+int calculateSimilarity(User* currentUser, User* otherUser) {
+    int techDiff = abs(currentUser->techScore - otherUser->techScore);
+    int artDiff = abs(currentUser->artScore - otherUser->artScore);
+    int sportDiff = abs(currentUser->sportScore - otherUser->sportScore);
+
+    return techDiff + artDiff + sportDiff;
+}
+
+// This function recommends posts from users with similar interests.
+void recommendPosts(User* currentUser) {
+    cout << "\n[LAB 6] RECOMMENDED POSTS" << endl;
+
+    vector<RecommendedPost> recommendations;
+
+    // Go through every user in the system.
+    for (User* u : allUsers) {
+        // Do not recommend your own posts.
+        if (u == currentUser) {
+    continue;
+}
+
+// skip friends (this is the important part)
+bool isFriend = false;
+for (User* f : currentUser->friends) {
+    if (f == u) {
+        isFriend = true;
+        break;
+    }
+}
+if (isFriend) {
+    continue;
+}
+
+        // Calculate how similar this user is to the current user.
+        int similarity = calculateSimilarity(currentUser, u);
+
+        Post* p = u->timeline.head;
+        int limit = 0;
+
+        // Add up to 3 posts from each user to the recommendation list.
+        while (p != nullptr && limit < 3) {
+            recommendations.push_back({p, u, similarity});
+
+            p = p->next;
+            limit++;
+        }
+    }
+
+    // Sort posts so the most similar users appear first.
+    sort(recommendations.begin(), recommendations.end(),
+        [](RecommendedPost a, RecommendedPost b) {
+            if (a.similarityScore == b.similarityScore)
+                return a.post->likes > b.post->likes; // more likes first
+                return a.similarityScore < b.similarityScore;
+        });
+
+    if (recommendations.empty()) {
+        cout << "  No recommended posts found." << endl;
+        return;
+    }
+
+    int count = 0;
+
+    // Print only the top 10 recommended posts.
+    for (RecommendedPost r : recommendations) {
+        if (count >= 10) {
+            break;
+        }
+
+        cout << "  > @" << r.author->username
+             << " [Similarity: " << r.similarityScore << "] "
+             << r.post->content
+             << " (" << r.post->likes << " likes)" << endl;
+
+        count++;
+    }
+}
 // ==========================================
 // FILE I/O 
 // ==========================================
@@ -499,16 +590,17 @@ void saveData() {
 // ==========================================
 
 void clearScreen() {
-    #ifdef _WIN32
-        system("cls");
-    #else
-        system("clear");
-    #endif
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
 }
 
 void showUserDashboard(User* currentUser) {
     int choice = 0;
-    while (choice != 7) {
+
+    while (choice != 8) {
         cout << "\n--- Welcome, @" << currentUser->username << " ---" << endl;
         cout << "1. View My Post (Lab 1)" << endl;
         cout << "2. Create New Post (Lab 1)" << endl;
@@ -516,8 +608,10 @@ void showUserDashboard(User* currentUser) {
         cout << "4. Algorithmic Feed (Lab 3)" << endl;
         cout << "5. View Friends Sorted (Lab 4)" << endl;
         cout << "6. Get Friend Recommendations (Lab 5)" << endl;
-        cout << "7. Logout" << endl;
+        cout << "7. Recommended Posts (Lab 6)" << endl;
+        cout << "8. Logout" << endl;
         cout << "Select >> ";
+
         cin >> choice;
 
         if (choice == 1) {
@@ -526,59 +620,100 @@ void showUserDashboard(User* currentUser) {
         }
         else if (choice == 2) {
             cout << "\nEnter post content: ";
-            cin.ignore(); 
+
+            cin.ignore();
+
             string content;
             getline(cin, content);
+
             createNewPost(currentUser, content);
         }
         else if (choice == 3) {
             string friendName;
-            cout << "Enter username to add: "; cin >> friendName;
+
+            cout << "Enter username to add: ";
+            cin >> friendName;
+
             User* target = userMap.get(friendName);
-            if(target && target != currentUser) addFriendship(currentUser, target);
-            else cout << "Invalid user (or Hash Map not implemented)." << endl;
+
+            if (target && target != currentUser) {
+                addFriendship(currentUser, target);
+            }
+            else {
+                cout << "Invalid user (or Hash Map not implemented)." << endl;
+            }
         }
         else if (choice == 4) {
             cout << "\n[ALGORITHMIC FEED]" << endl;
+
             FeedHeap feed;
+
             vector<User*> friends = currentUser->getFriendsList();
-            for(User* f : friends) {
+
+            for (User* f : friends) {
                 Post* p = f->timeline.head;
                 int limit = 0;
-                while(p != nullptr && limit < 5) {
+
+                while (p != nullptr && limit < 5) {
                     feed.push(p);
+
                     p = p->next;
                     limit++;
                 }
             }
+
             int count = 0;
-            while(!feed.isEmpty() && count < 10) {
+
+            while (!feed.isEmpty() && count < 10) {
                 Post* top = feed.popMax();
-                if(top)
-                    cout << "  > [ID: " << top->postId << "] [Score: " << (int)top->getScore() << "] @" 
-                         << allUsers[top->userId - 1]->username << ": " << top->content 
+
+                if (top) {
+                    cout << "  > [ID: " << top->postId << "] "
+                         << "[Score: " << (int)top->getScore() << "] @"
+                         << allUsers[top->userId - 1]->username << ": "
+                         << top->content
                          << " (" << top->likes << " likes)" << endl;
+                }
+
                 count++;
             }
-            if(count == 0) cout << "  No posts found." << endl;
+
+            if (count == 0) {
+                cout << "  No posts found." << endl;
+            }
             else {
                 cout << "\nDo you want to like a post? (y/n): ";
-                char resp; cin >> resp;
+
+                char resp;
+                cin >> resp;
+
                 if (resp == 'y' || resp == 'Y') {
-                    int pid; cout << "Enter Post ID: "; cin >> pid;
+                    int pid;
+
+                    cout << "Enter Post ID: ";
+                    cin >> pid;
+
                     Post* p = findPostById(pid);
-                    if (p) { p->likes++; cout << "Liked!" << endl; }
+
+                    if (p) {
+                        p->likes++;
+                        cout << "Liked!" << endl;
+                    }
                 }
             }
         }
         else if (choice == 5) {
             cout << "\n[MY FRIENDS]" << endl;
+
             currentUser->friendTree.printFriends();
         }
         else if (choice == 6) {
-             recommendFriends(currentUser);
+            recommendFriends(currentUser);
         }
         else if (choice == 7) {
+            recommendPosts(currentUser);
+        }
+        else if (choice == 8) {
             cout << "Logging out..." << endl;
         }
     }
@@ -586,32 +721,46 @@ void showUserDashboard(User* currentUser) {
 
 void showMainMenu() {
     int choice = 0;
+
     while (choice != 3) {
         cout << "\n=== CONNECT-U ===" << endl;
         cout << "1. Login" << endl;
         cout << "2. Register" << endl;
         cout << "3. Exit & Save" << endl;
         cout << "Select >> ";
+
         cin >> choice;
 
         if (choice == 1) {
             string username;
-            cout << "Username: "; cin >> username;
+
+            cout << "Username: ";
+            cin >> username;
+
             User* user = userMap.get(username);
-            if (user) showUserDashboard(user);
-            else cout << "User not found." << endl;
-        } 
+
+            if (user) {
+                showUserDashboard(user);
+            }
+            else {
+                cout << "User not found." << endl;
+            }
+        }
         else if (choice == 2) {
             string username;
             int t, a, s;
-            cout << "Username: "; cin >> username;
-            cout << "Tech/Art/Sport (1-10): "; cin >> t >> a >> s;
+
+            cout << "Username: ";
+            cin >> username;
+
+            cout << "Tech/Art/Sport (1-10): ";
+            cin >> t >> a >> s;
+
             registerNewUser(username, t, a, s);
         }
         else if (choice == 3) {
-            // SAFETY: Commented out to prevent data loss on initial run.
-            // Students must uncomment this ONLY when Lab 1 is complete.
             saveData();
+
             cout << "Goodbye! " << endl;
         }
     }
@@ -619,7 +768,10 @@ void showMainMenu() {
 
 int main() {
     loadData();
+
     clearScreen();
+
     showMainMenu();
+
     return 0;
 }
